@@ -4,18 +4,23 @@ import { AppService } from './app.service';
 import { UserModule } from './res/user.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import * as path from 'path';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        retryAttempts: 10, // 연결에 실패했을 경우, 재시도 횟수
+      inject: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        retryAttempts: configService.get('NODE_ENV') === 'prod' ? 10 : 1,
         type: 'mysql',
-        host: '127.0.0.1',
-        port: 3306,
-        database: 'basic',
-        username: 'root',
-        password: '0000',
+        host: configService.get('DB_HOST'),
+        port: Number(configService.get('DB_PORT')),
+        database: configService.get('DB_NAME'),
+        username: configService.get('DB_USER'),
+        password: configService.get('DB_PASSWORD'),
         entities: [path.join(__dirname, '/entities/**/*.entity.{js, ts}')],
         synchronize: false,
         logging: true,
